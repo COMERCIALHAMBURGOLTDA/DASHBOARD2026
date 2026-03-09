@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Productos con Fecha Corta</title>
+
+<style>
+
+body{
+background:white;
+color:black;
+font-family:Segoe UI,Arial;
+margin:0;
+}
+
+/* HEADER */
+
+.header{
+text-align:center;
+padding:25px;
+border-bottom:3px solid #1e3a8a;
+}
+
+h1{
+margin:0;
+font-size:46px;
+color:#1e3a8a;
+}
+
+.subtitulo{
+margin-top:8px;
+color:#555;
+}
+
+/* TABLA */
+
+.container{
+padding:20px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+font-size:18px;
+}
+
+thead{
+background:#111827;
+color:white;
+}
+
+th,td{
+padding:10px;
+border-bottom:1px solid #e5e7eb;
+text-align:center;
+}
+
+/* PARPADEO SUAVE */
+
+@keyframes blink{
+0%{opacity:1}
+40%{opacity:1}
+60%{opacity:0.45}
+100%{opacity:1}
+}
+
+/* COLORES */
+
+.vencido{
+background:black;
+color:white;
+animation:blink 2.5s infinite;
+}
+
+.menos15{
+background:#7e22ce;
+color:white;
+animation:blink 2.5s infinite;
+}
+
+.menos30{
+background:#ef4444;
+color:white;
+animation:blink 2.5s infinite;
+}
+
+.menos60{
+background:#facc15;
+color:black;
+}
+
+.normal{
+background:white;
+color:black;
+}
+
+.subtotal{
+background:#e5e7eb;
+font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+<h1>PRODUCTOS CON FECHA CORTA</h1>
+<div class="subtitulo" id="ultimaActualizacion"></div>
+</div>
+
+<div class="container">
+
+<table id="tabla">
+
+<thead>
+<tr>
+<th>#</th>
+<th>Bodega</th>
+<th>Pasillo</th>
+<th>Rack</th>
+<th>Código Venta</th>
+<th>Producto</th>
+<th>Bultos</th>
+<th>Unidades</th>
+<th>Vencimiento</th>
+<th>Días</th>
+<th>Total $</th>
+<th>Última actualización</th>
+<th>Usuario</th>
+</tr>
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+/* HORA ACTUALIZACION */
+
+const ahora=new Date()
+
+document.getElementById("ultimaActualizacion").innerText=
+"Actualizado: "+ahora.toLocaleString("es-CL",{hour12:false})
+
+/* CSV PARSER */
+
+function parseCSV(text){
+
+const rows=[]
+let row=[]
+let current=""
+let insideQuotes=false
+
+for(let i=0;i<text.length;i++){
+
+const char=text[i]
+
+if(char=='"'){
+insideQuotes=!insideQuotes
+continue
+}
+
+if(char==","&&!insideQuotes){
+row.push(current)
+current=""
+continue
+}
+
+if((char=="\n"||char=="\r")&&!insideQuotes){
+
+if(current||row.length){
+row.push(current)
+rows.push(row)
+row=[]
+current=""
+}
+
+continue
+}
+
+current+=char
+}
+
+if(current||row.length){
+row.push(current)
+rows.push(row)
+}
+
+return rows
+}
+
+/* GOOGLE SHEET */
+
+const url="https://docs.google.com/spreadsheets/d/e/2PACX-1vSzxaEsuaeqHWRDtqYiuiIMz7U75VCuIrc3VT2NCZLfwIfJupi4pc5o5LN8b-hSgoY3b_qLD3aPocdm/pub?output=csv"
+
+fetch(url)
+.then(res=>res.text())
+.then(text=>{
+
+const data=parseCSV(text)
+const filas=data.slice(1)
+
+const tbody=document.querySelector("#tabla tbody")
+
+let contador=1
+
+let vencidos=[]
+let menos15=[]
+let menos30=[]
+let menos60=[]
+let normal=[]
+
+let subtotalVencidos=0
+let subtotal15=0
+let subtotal30=0
+let subtotal60=0
+let subtotalNormal=0
+
+filas.forEach(col=>{
+
+const bodega=col[1]
+const pasillo=col[3]
+const rack=col[4]
+const codigoVenta=col[7]
+const descripcion=col[8]
+const bultos=col[9]
+const unidades=col[10]
+const vencimiento=col[11]
+
+const totalRaw=col[15]
+const total=totalRaw?totalRaw.replace(/[^\d]/g,""):"0"
+
+const ultimaActualizacion=col[16]
+const usuario=col[17]
+
+if(!vencimiento) return
+
+const partes=vencimiento.split("/")
+const fechaV=new Date(partes[2],partes[1]-1,partes[0])
+
+const hoy=new Date()
+const diff=Math.ceil((fechaV-hoy)/(1000*60*60*24))
+
+const fila={
+bodega,pasillo,rack,codigoVenta,descripcion,bultos,unidades,vencimiento,diff,total,ultimaActualizacion,usuario
+}
+
+if(diff<0){
+vencidos.push(fila)
+subtotalVencidos+=Number(total)
+}
+else if(diff<=15){
+menos15.push(fila)
+subtotal15+=Number(total)
+}
+else if(diff<=30){
+menos30.push(fila)
+subtotal30+=Number(total)
+}
+else if(diff<=60){
+menos60.push(fila)
+subtotal60+=Number(total)
+}
+else{
+normal.push(fila)
+subtotalNormal+=Number(total)
+}
+
+})
+
+function imprimirGrupo(grupo,clase){
+
+grupo.forEach(f=>{
+
+const totalFormateado=new Intl.NumberFormat("es-CL").format(Number(f.total))
+
+const tr=document.createElement("tr")
+tr.className=clase
+
+tr.innerHTML=`
+<td>${contador}</td>
+<td>${f.bodega}</td>
+<td>${f.pasillo}</td>
+<td>${f.rack}</td>
+<td>${f.codigoVenta}</td>
+<td>${f.descripcion}</td>
+<td>${f.bultos}</td>
+<td>${f.unidades}</td>
+<td>${f.vencimiento}</td>
+<td>${f.diff}</td>
+<td>$ ${totalFormateado}</td>
+<td>${f.ultimaActualizacion}</td>
+<td>${f.usuario}</td>
+`
+
+tbody.appendChild(tr)
+
+contador++
+
+})
+
+}
+
+function subtotalFila(texto,valor){
+
+const fila=document.createElement("tr")
+fila.className="subtotal"
+
+const monto=new Intl.NumberFormat("es-CL").format(valor)
+
+fila.innerHTML=`
+<td colspan="10"></td>
+<td colspan="3">Subtotal ${texto}: $ ${monto}</td>
+`
+
+tbody.appendChild(fila)
+
+}
+
+/* IMPRESION ORDENADA */
+
+imprimirGrupo(vencidos,"vencido")
+subtotalFila("Vencidos",subtotalVencidos)
+
+imprimirGrupo(menos15,"menos15")
+subtotalFila("< 15 días",subtotal15)
+
+imprimirGrupo(menos30,"menos30")
+subtotalFila("15 - 30 días",subtotal30)
+
+imprimirGrupo(menos60,"menos60")
+subtotalFila("30 - 60 días",subtotal60)
+
+imprimirGrupo(normal,"normal")
+subtotalFila("> 60 días",subtotalNormal)
+
+})
+
+/* REFRESH */
+
+setTimeout(()=>location.reload(),60000)
+
+</script>
+
+</body>
+</html>
