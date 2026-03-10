@@ -25,34 +25,48 @@ h1{
 margin:0;
 font-size:46px;
 color:#1e3a8a;
+font-weight:700;
 }
 
 .subtitulo{
 margin-top:8px;
 color:#555;
+font-weight:600;
 }
 
 /* TABLA */
 
 .container{
 padding:20px;
+max-height:85vh;
+overflow:auto;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
-font-size:18px;
+font-size:20px;
+font-weight:600;
 }
 
 thead{
 background:#111827;
 color:white;
+position:sticky;
+top:0;
+z-index:2;
 }
 
-th,td{
-padding:10px;
+th{
+padding:14px;
+font-weight:700;
+}
+
+td{
+padding:14px;
 border-bottom:1px solid #e5e7eb;
 text-align:center;
+font-weight:600;
 }
 
 /* PARPADEO SUAVE */
@@ -60,27 +74,27 @@ text-align:center;
 @keyframes blink{
 0%{opacity:1}
 40%{opacity:1}
-60%{opacity:0.45}
+60%{opacity:0.5}
 100%{opacity:1}
 }
 
-/* COLORES */
+/* COLORES (MANTENIDOS) */
 
 .vencido{
-background:black;
-color:white;
+background:#000000;
+color:black;
 animation:blink 2.5s infinite;
 }
 
 .menos15{
 background:#7e22ce;
-color:white;
+color:black;
 animation:blink 2.5s infinite;
 }
 
 .menos30{
 background:#ef4444;
-color:white;
+color:black;
 animation:blink 2.5s infinite;
 }
 
@@ -96,7 +110,14 @@ color:black;
 
 .subtotal{
 background:#e5e7eb;
-font-weight:bold;
+font-weight:700;
+}
+
+/* ICONO ALERTA */
+
+.alertaIcon{
+font-size:18px;
+margin-right:5px;
 }
 
 </style>
@@ -117,6 +138,7 @@ font-weight:bold;
 <tr>
 <th>#</th>
 <th>Bodega</th>
+<th>Nivel</th>
 <th>Pasillo</th>
 <th>Rack</th>
 <th>Código Venta</th>
@@ -223,6 +245,7 @@ let subtotalNormal=0
 filas.forEach(col=>{
 
 const bodega=col[1]
+const nivel=col[2]
 const pasillo=col[3]
 const rack=col[4]
 const codigoVenta=col[7]
@@ -246,7 +269,7 @@ const hoy=new Date()
 const diff=Math.ceil((fechaV-hoy)/(1000*60*60*24))
 
 const fila={
-bodega,pasillo,rack,codigoVenta,descripcion,bultos,unidades,vencimiento,diff,total,ultimaActualizacion,usuario
+bodega,nivel,pasillo,rack,codigoVenta,descripcion,bultos,unidades,vencimiento,diff,total,ultimaActualizacion,usuario
 }
 
 if(diff<0){
@@ -272,11 +295,24 @@ subtotalNormal+=Number(total)
 
 })
 
+/* ORDENAR POR DIAS */
+
+vencidos.sort((a,b)=>a.diff-b.diff)
+menos15.sort((a,b)=>a.diff-b.diff)
+menos30.sort((a,b)=>a.diff-b.diff)
+menos60.sort((a,b)=>a.diff-b.diff)
+normal.sort((a,b)=>a.diff-b.diff)
+
 function imprimirGrupo(grupo,clase){
 
 grupo.forEach(f=>{
 
 const totalFormateado=new Intl.NumberFormat("es-CL").format(Number(f.total))
+
+let icono=""
+if(f.diff<=15){
+icono='<span class="alertaIcon">⚠</span>'
+}
 
 const tr=document.createElement("tr")
 tr.className=clase
@@ -284,10 +320,11 @@ tr.className=clase
 tr.innerHTML=`
 <td>${contador}</td>
 <td>${f.bodega}</td>
+<td>${f.nivel}</td>
 <td>${f.pasillo}</td>
 <td>${f.rack}</td>
 <td>${f.codigoVenta}</td>
-<td>${f.descripcion}</td>
+<td>${icono}${f.descripcion}</td>
 <td>${f.bultos}</td>
 <td>${f.unidades}</td>
 <td>${f.vencimiento}</td>
@@ -313,15 +350,13 @@ fila.className="subtotal"
 const monto=new Intl.NumberFormat("es-CL").format(valor)
 
 fila.innerHTML=`
-<td colspan="10"></td>
+<td colspan="11"></td>
 <td colspan="3">Subtotal ${texto}: $ ${monto}</td>
 `
 
 tbody.appendChild(fila)
 
 }
-
-/* IMPRESION ORDENADA */
 
 imprimirGrupo(vencidos,"vencido")
 subtotalFila("Vencidos",subtotalVencidos)
@@ -339,8 +374,6 @@ imprimirGrupo(normal,"normal")
 subtotalFila("> 60 días",subtotalNormal)
 
 })
-
-/* REFRESH */
 
 setTimeout(()=>location.reload(),60000)
 
