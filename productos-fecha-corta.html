@@ -45,7 +45,7 @@ overflow:auto;
 table{
 width:100%;
 border-collapse:collapse;
-font-size:20px;
+font-size:18px;
 font-weight:600;
 }
 
@@ -69,7 +69,7 @@ text-align:center;
 font-weight:600;
 }
 
-/* PARPADEO SUAVE */
+/* PARPADEO */
 
 @keyframes blink{
 0%{opacity:1}
@@ -78,23 +78,23 @@ font-weight:600;
 100%{opacity:1}
 }
 
-/* COLORES (MANTENIDOS) */
+/* COLORES RESTAURADOS */
 
 .vencido{
 background:#000000;
-color:black;
+color:white;
 animation:blink 2.5s infinite;
 }
 
 .menos15{
 background:#7e22ce;
-color:black;
+color:white;
 animation:blink 2.5s infinite;
 }
 
 .menos30{
 background:#ef4444;
-color:black;
+color:white;
 animation:blink 2.5s infinite;
 }
 
@@ -161,14 +161,10 @@ margin-right:5px;
 
 <script>
 
-/* HORA ACTUALIZACION */
-
 const ahora=new Date()
 
 document.getElementById("ultimaActualizacion").innerText=
 "Actualizado: "+ahora.toLocaleString("es-CL",{hour12:false})
-
-/* CSV PARSER */
 
 function parseCSV(text){
 
@@ -214,8 +210,6 @@ rows.push(row)
 
 return rows
 }
-
-/* GOOGLE SHEET */
 
 const url="https://docs.google.com/spreadsheets/d/e/2PACX-1vSzxaEsuaeqHWRDtqYiuiIMz7U75VCuIrc3VT2NCZLfwIfJupi4pc5o5LN8b-hSgoY3b_qLD3aPocdm/pub?output=csv"
 
@@ -294,8 +288,6 @@ subtotalNormal+=Number(total)
 }
 
 })
-
-/* ORDENAR POR DIAS */
 
 vencidos.sort((a,b)=>a.diff-b.diff)
 menos15.sort((a,b)=>a.diff-b.diff)
