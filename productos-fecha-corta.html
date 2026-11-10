@@ -2,122 +2,171 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Productos con Fecha Corta</title>
 
 <style>
 
-body{
-background:white;
-color:black;
-font-family:Segoe UI,Arial;
-margin:0;
+/* Diseño adaptable: la información se mantiene completa en todas las pantallas. */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    background: white;
+    color: black;
+    font-family: "Segoe UI", Arial, sans-serif;
+    margin: 0;
+    min-width: 0;
 }
 
-/* HEADER */
-
-.header{
-text-align:center;
-padding:25px;
-border-bottom:3px solid #1e3a8a;
+/* CABECERA */
+.header {
+    text-align: center;
+    padding: clamp(14px, 2vw, 25px);
+    border-bottom: 3px solid #1e3a8a;
 }
 
-h1{
-margin:0;
-font-size:46px;
-color:#1e3a8a;
-font-weight:700;
+h1 {
+    margin: 0;
+    font-size: clamp(23px, 3vw, 46px);
+    line-height: 1.15;
+    color: #1e3a8a;
+    font-weight: 700;
 }
 
-.subtitulo{
-margin-top:8px;
-color:#555;
-font-weight:600;
+.subtitulo {
+    margin-top: 8px;
+    color: #555;
+    font-weight: 600;
+    font-size: clamp(12px, 1vw, 16px);
 }
 
-/* TABLA */
-
-.container{
-padding:20px;
-max-height:85vh;
-overflow:auto;
+/* TABLA DE ESCRITORIO: las 14 columnas caben sin desplazamiento horizontal. */
+.container {
+    width: 100%;
+    padding: clamp(8px, 1.2vw, 20px);
+    max-height: 85vh;
+    max-height: 85dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-table{
-width:100%;
-border-collapse:collapse;
-font-size:18px;
-font-weight:600;
+table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: clamp(11px, 0.9vw, 16px);
+    line-height: 1.3;
+    font-weight: 600;
 }
 
-thead{
-background:#111827;
-color:white;
-position:sticky;
-top:0;
-z-index:2;
+thead {
+    background: #111827;
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
-th{
-padding:14px;
-font-weight:700;
+th {
+    padding: clamp(5px, .55vw, 10px) clamp(2px, .3vw, 6px);
+    font-weight: 700;
 }
 
-td{
-padding:14px;
-border-bottom:1px solid #e5e7eb;
-text-align:center;
-font-weight:600;
+td {
+    padding: clamp(5px, .55vw, 10px) clamp(2px, .3vw, 6px);
+    border-bottom: 1px solid #e5e7eb;
+    text-align: center;
+    vertical-align: middle;
+    font-weight: 600;
 }
+
+th, td {
+    overflow-wrap: anywhere;
+    hyphens: auto;
+}
+
+/* En vista de escritorio no se muestran las etiquetas de las fichas. */
+td::before { content: none; }
 
 /* PARPADEO */
-
-@keyframes blink{
-0%{opacity:1}
-40%{opacity:1}
-60%{opacity:0.5}
-100%{opacity:1}
+@keyframes blink {
+    0% { opacity: 1; }
+    40% { opacity: 1; }
+    60% { opacity: .5; }
+    100% { opacity: 1; }
 }
 
-/* COLORES RESTAURADOS */
+/* COLORES ORIGINALES */
+.vencido { background: #000000; color: white; animation: blink 2.5s infinite; }
+.menos15 { background: #7e22ce; color: white; animation: blink 2.5s infinite; }
+.menos30 { background: #ef4444; color: white; animation: blink 2.5s infinite; }
+.menos60 { background: #facc15; color: black; }
+.normal { background: white; color: black; }
+.subtotal { background: #e5e7eb; color: black; font-weight: 700; }
+.alertaIcon { font-size: 1em; margin-right: 5px; }
 
-.vencido{
-background:#000000;
-color:white;
-animation:blink 2.5s infinite;
+/* TABLET Y CELULAR: cada producto muestra los 14 campos sin recortar datos. */
+@media (max-width: 1150px) {
+    .container { max-height: none; overflow: visible; }
+    table, tbody { display: block; width: 100%; }
+    colgroup, thead { display: none; }
+
+    tbody tr:not(.subtotal) {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0;
+        margin-bottom: 12px;
+        padding: 8px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(17, 24, 39, .12);
+    }
+
+    tbody tr:not(.subtotal) td {
+        display: block;
+        min-width: 0;
+        padding: 9px 10px;
+        border-bottom: 1px solid rgba(128, 128, 128, .2);
+        text-align: left;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+    }
+
+    tbody tr:not(.subtotal) td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 3px;
+        font-size: 11px;
+        font-weight: 700;
+        opacity: .78;
+    }
+
+    tbody tr:not(.subtotal) td:nth-child(7) { grid-column: span 2; }
+
+    tbody tr.subtotal {
+        display: block;
+        margin: 0 0 14px;
+        padding: 10px 14px;
+        border-radius: 8px;
+    }
+    tbody tr.subtotal td:first-child { display: none; }
+    tbody tr.subtotal td:last-child {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        text-align: right;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+    }
 }
 
-.menos15{
-background:#7e22ce;
-color:white;
-animation:blink 2.5s infinite;
-}
-
-.menos30{
-background:#ef4444;
-color:white;
-animation:blink 2.5s infinite;
-}
-
-.menos60{
-background:#facc15;
-color:black;
-}
-
-.normal{
-background:white;
-color:black;
-}
-
-.subtotal{
-background:#e5e7eb;
-font-weight:700;
-}
-
-/* ICONO ALERTA */
-
-.alertaIcon{
-font-size:18px;
-margin-right:5px;
+@media (max-width: 650px) {
+    tbody tr:not(.subtotal) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    tbody tr:not(.subtotal) td:nth-child(7) { grid-column: 1 / -1; }
+    tbody tr:not(.subtotal) td { font-size: 13px; }
+    .header { padding: 15px 10px; }
+    h1 { font-size: clamp(20px, 5.8vw, 30px); }
 }
 
 </style>
@@ -133,6 +182,13 @@ margin-right:5px;
 <div class="container">
 
 <table id="tabla">
+<colgroup>
+<col style="width:2.8%"><col style="width:6%"><col style="width:7.3%">
+<col style="width:6%"><col style="width:5.5%"><col style="width:7.2%">
+<col style="width:19%"><col style="width:4.5%"><col style="width:5.5%">
+<col style="width:8%"><col style="width:3.8%"><col style="width:8.5%">
+<col style="width:9.4%"><col style="width:6.5%">
+</colgroup>
 
 <thead>
 <tr>
@@ -310,20 +366,20 @@ const tr=document.createElement("tr")
 tr.className=clase
 
 tr.innerHTML=`
-<td>${contador}</td>
-<td>${f.bodega}</td>
-<td>${f.nivel}</td>
-<td>${f.pasillo}</td>
-<td>${f.rack}</td>
-<td>${f.codigoVenta}</td>
-<td>${icono}${f.descripcion}</td>
-<td>${f.bultos}</td>
-<td>${f.unidades}</td>
-<td>${f.vencimiento}</td>
-<td>${f.diff}</td>
-<td>$ ${totalFormateado}</td>
-<td>${f.ultimaActualizacion}</td>
-<td>${f.usuario}</td>
+<td data-label="#">${contador}</td>
+<td data-label="Bodega">${f.bodega}</td>
+<td data-label="Nivel">${f.nivel}</td>
+<td data-label="Pasillo">${f.pasillo}</td>
+<td data-label="Rack">${f.rack}</td>
+<td data-label="Código Venta">${f.codigoVenta}</td>
+<td data-label="Producto">${icono}${f.descripcion}</td>
+<td data-label="Bultos">${f.bultos}</td>
+<td data-label="Unidades">${f.unidades}</td>
+<td data-label="Vencimiento">${f.vencimiento}</td>
+<td data-label="Días">${f.diff}</td>
+<td data-label="Total $">$ ${totalFormateado}</td>
+<td data-label="Última actualización">${f.ultimaActualizacion}</td>
+<td data-label="Usuario">${f.usuario}</td>
 `
 
 tbody.appendChild(tr)
