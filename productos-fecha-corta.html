@@ -267,14 +267,80 @@ rows.push(row)
 return rows
 }
 
+// BD conserva la informacion del producto, existencias, vencimiento y valorizacion.
 const url="https://docs.google.com/spreadsheets/d/e/2PACX-1vSzxaEsuaeqHWRDtqYiuiIMz7U75VCuIrc3VT2NCZLfwIfJupi4pc5o5LN8b-hSgoY3b_qLD3aPocdm/pub?output=csv"
 
-fetch(url)
-.then(res=>res.text())
-.then(text=>{
+// CONSOLIDADO aporta la ultima fecha y el usuario de cada ID UBICACION.
+const urlConsolidado="https://docs.google.com/spreadsheets/d/e/2PACX-1vRCAN1uH1IpPYi5jgPZOmFWZ72KV5mGjKcpjMUD4PrX4n0i0H42XiXqepYv8ITYp4cWjRvfVIJ8pxY4/pub?gid=344906568&single=true&output=csv"
 
-const data=parseCSV(text)
+function normalizarUbicacion(valor) {
+  let id=String(valor ?? "").trim().replace(/^'+/, "");
+  // Google Sheets puede representar el mismo ID numerico como 262 o 262.0.
+  if (/^\d+(?:\.0+)?$/.test(id)) {
+    id=String(Number(id));
+  }
+  return id;
+}
+
+function normalizarEncabezado(valor) {
+  return String(valor ?? "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function obtenerActualizaciones(textoCSV) {
+  const registros=parseCSV(textoCSV);
+  if (!registros.length) throw new Error("El consolidado esta vacio.");
+
+  const encabezados=registros[0].map(normalizarEncabezado);
+  const indiceID=encabezados.indexOf("ID UBICACION");
+  const indiceUsuario=encabezados.indexOf("USUARIO CONSULTA") >= 0
+    ? encabezados.indexOf("USUARIO CONSULTA") : encabezados.indexOf("USUARIO");
+  const indiceFecha=encabezados.indexOf("FECHA CONSULTA") >= 0
+    ? encabezados.indexOf("FECHA CONSULTA") : encabezados.indexOf("FECHA AJUSTE");
+
+  if (indiceID < 0 || indiceUsuario < 0 || indiceFecha < 0) {
+    throw new Error("El CSV consolidado no contiene ID UBICACION, USUARIO o FECHA AJUSTE.");
+  }
+
+  const actualizaciones=new Map();
+  // El consolidado se ordena del mas reciente al mas antiguo en Apps Script.
+  // Por eso, la primera fila encontrada para cada ubicacion es la mas nueva.
+  for (const fila of registros.slice(1)) {
+    const id=normalizarUbicacion(fila[indiceID]);
+    if (!id || actualizaciones.has(id)) continue;
+    actualizaciones.set(id, {
+      fecha:String(fila[indiceFecha] ?? "").trim(),
+      usuario:String(fila[indiceUsuario] ?? "").trim()
+    });
+  }
+  return actualizaciones;
+}
+
+async function obtenerCSV(direccion) {
+  const respuesta=await fetch(direccion, {cache:"no-store"});
+  if (!respuesta.ok) throw new Error("HTTP " + respuesta.status);
+  return respuesta.text();
+}
+
+Promise.all([
+  obtenerCSV(url),
+  obtenerCSV(urlConsolidado).then(obtenerActualizaciones).catch(error => {
+    console.error("No se pudo cargar CONSOLIDADO:", error);
+    return null;
+  })
+])
+.then(([textoBD, actualizaciones])=>{
+
+const data=parseCSV(textoBD)
 const filas=data.slice(1)
+
+if (!actualizaciones) {
+  document.getElementById("ultimaActualizacion").innerText +=
+    " | Sin acceso a CONSOLIDADO; se muestran las fechas de BD";
+}
 
 const tbody=document.querySelector("#tabla tbody")
 
@@ -307,8 +373,10 @@ const vencimiento=col[11]
 const totalRaw=col[15]
 const total=totalRaw?totalRaw.replace(/[^\d]/g,""):"0"
 
-const ultimaActualizacion=col[16]
-const usuario=col[17]
+const idUbicacion=normalizarUbicacion(col[0])
+const cambio=actualizaciones?.get(idUbicacion)
+const ultimaActualizacion=cambio?.fecha || col[16] || "Sin registro"
+const usuario=cambio?.usuario || col[17] || "Sin registro"
 
 if(!vencimiento) return
 
@@ -421,6 +489,11 @@ subtotalFila("30 - 60 días",subtotal60)
 imprimirGrupo(normal,"normal")
 subtotalFila("> 60 días",subtotalNormal)
 
+})
+.catch(error=>{
+  console.error("No se pudieron cargar los productos:",error);
+  document.getElementById("ultimaActualizacion").innerText=
+    "No se pudieron cargar los datos de productos. Reintenta actualizar la pagina.";
 })
 
 setTimeout(()=>location.reload(),60000)
